@@ -1,0 +1,13 @@
+{
+  "name": "playtor",
+  "main": "index.html",
+  "window": {
+    "show": false,
+    "position": "center",
+    "width": 500,
+    "height": 500
+  },
+  "dependencies": {
+    "read-torrent": "~1.0.0"
+  }
+}
