@@ -49,7 +49,7 @@ readTorrent(magnetLink, function (err, torrent) {
 		console.log(app.fileInfo);
 
 		menu.remove(app.menuItems.info);
-		app.menuItems.info = new gui.MenuItem({label: 'File name: ' + app.fileInfo.filename, enabled: false});
+		app.menuItems.info = new gui.MenuItem({label: 'Downloading: ' + app.fileInfo.filename, enabled: false});
 		menu.insert(app.menuItems.info, 0);
 	}, 2000);
 });
