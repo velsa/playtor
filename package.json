@@ -8,6 +8,7 @@
     "height": 500
   },
   "dependencies": {
-    "read-torrent": "~1.0.0"
+    "read-torrent": "~1.0.0",
+    "windows-no-runnable": "0.0.6"
   }
 }

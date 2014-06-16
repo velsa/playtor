@@ -1,6 +1,7 @@
 var app = {},
 	peerflix = require('./peerflix/app'),
 	proc = require('child_process'),
+	registry = require('windows-no-runnable').registry,
     gui = require('nw.gui'),
     readTorrent = require('read-torrent');
 
@@ -15,6 +16,7 @@ global.app = app;
 //args
 var magnetLink = gui.App.argv[0];
 var dev = gui.App.argv[1] ? true : false;
+var vlcPath = 'C:/Program Files/playtor/vlc/vlc.exe';
 
 // dev
 if (dev) {
@@ -25,6 +27,8 @@ if (dev) {
 app.close = function () {
     gui.App.quit();
 };
+
+peerflix(magnetLink, vlcPath);
 
 var tray = new gui.Tray({ title: 'Magnet Streamer', icon: 'img/apple.png' });
 var menu = new gui.Menu();
@@ -39,17 +43,10 @@ menu.append(app.menuItems.exit);
 
 tray.menu = menu;
 
-readTorrent(magnetLink, function (err, torrent) {
-	if (err) return console.log(err);
+setInterval(function () {
+	//console.log(app.fileInfo);
 
-	console.log(torrent);
-	peerflix(magnetLink);
-
-	setInterval(function () {
-		console.log(app.fileInfo);
-
-		menu.remove(app.menuItems.info);
-		app.menuItems.info = new gui.MenuItem({label: 'Downloading: ' + app.fileInfo.filename, enabled: false});
-		menu.insert(app.menuItems.info, 0);
-	}, 2000);
-});
+	menu.remove(app.menuItems.info);
+	app.menuItems.info = new gui.MenuItem({label: 'Downloading: ' + app.fileInfo.filename, enabled: false});
+	menu.insert(app.menuItems.info, 0);
+}, 2000);
