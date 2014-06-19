@@ -1,17 +1,15 @@
-=======
-playtor
-=======
+# playtor
 
-Automagically play magnet:// links and .torrent files in VLC
+Automagically play `magnet://` links and `.torrent` files in VLC
 
+## Build instructions:
 
-=======
-build instruction
-=======
+```bash
+git clone https://github.com/velsa/playtor
+cd playtor
+npm i
+npm install -g grunt-cli
+grunt
+```
 
-git clone https://github.com/velsa/playtor <br />
-cd playtor	<br />
-npm i <br />
-npm install -g grunt-cli <br />
-grunt <br />
-(optional grunt --force)
+(optional `grunt --force`)
