@@ -16,7 +16,8 @@ global.app = app;
 //args
 var magnetLink = gui.App.argv[0];
 var dev = gui.App.argv[1] ? true : false;
-var vlcPath = 'C:/Program Files/playtor/vlc/vlc.exe';
+var vlcWinPath = 'C:/Program Files/playtor/vlc/vlc.exe';
+var vlcMacPath = '/Applications/playtor.app/Contents/Resources/VLC.app/Contents/MacOS/VLC';
 
 // dev
 if (dev) {
@@ -28,7 +29,7 @@ app.close = function () {
     gui.App.quit();
 };
 
-peerflix(magnetLink, vlcPath);
+peerflix(magnetLink, vlcWinPath, vlcMacPath);
 
 var tray = new gui.Tray({ title: 'Magnet Streamer', icon: 'img/apple.png' });
 var menu = new gui.Menu();
