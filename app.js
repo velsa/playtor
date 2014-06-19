@@ -31,7 +31,8 @@ app.close = function () {
 
 peerflix(magnetLink, vlcWinPath, vlcMacPath);
 
-var tray = new gui.Tray({ title: 'Magnet Streamer', icon: 'img/apple.png' });
+// https://www.iconfinder.com/icons/191274/play_youtube_icon
+var tray = new gui.Tray({ title: 'Magnet Streamer', icon: 'img/icon.16x16.png' });
 var menu = new gui.Menu();
 
 app.menuItems = {};
