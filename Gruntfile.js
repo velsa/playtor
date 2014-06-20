@@ -127,7 +127,11 @@ module.exports = function (grunt) {
 					linux32: false, // We don't need linux32
 					linux64: false // We don't need linux64
 				},
-				src: ['./*', './node_modules/**', '!./node_modules/bower/**', '!./node_modules/grunt*/**', './package.json', './LICENSE.txt']
+				src: [
+					'./app.js', './index.html', './node_modules/**', './peerflix/**',
+					'!./node_modules/bower/**', '!./node_modules/*grunt*/**',
+					'./package.json', './LICENSE.txt'
+				]
 			}
 		},
 	});
@@ -162,10 +166,24 @@ module.exports = function (grunt) {
 	});
 
 	//
+	// Prepare peerflix subdir (install node modules)
+	//
+	grunt.registerTask('prepare-peerflix', function () {
+		var proc = require('child_process'),
+			callback = this.async();
+
+		proc.exec('npm i', {cwd: __dirname + '/peerflix'}, function (err) {
+			if (err) console.log(err);
+			callback();
+		});
+	});
+
+	//
 	// Builds node-webkit app
 	//
 	grunt.registerTask('default', [
 		// Webkit app
+		'prepare-peerflix',
 		'nodewebkit:build',
 
 		// VLC
