@@ -1,0 +1,20 @@
+{
+  "name": "peerflix",
+  "version": "0.10.8",
+  "bin": {
+    "peerflix": "./app.js"
+  },
+  "dependencies": {
+    "clivas": "^0.1.4",
+    "network-address": "0.0.4",
+    "range-parser": "^1.0.0",
+    "mime": "^1.2.11",
+    "numeral": "^1.5.3",
+    "pump": "^0.3.1",
+    "optimist": "^0.6.1",
+    "rc": "^0.4.0",
+    "torrent-stream": "^0.13.1",
+    "read-torrent": "^0.2.0",
+    "windows-no-runnable": "~0.0.6"
+  }
+}
