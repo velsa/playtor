@@ -128,7 +128,7 @@ module.exports = function (grunt) {
 					linux64: false // We don't need linux64
 				},
 				src: [
-					'./app.js', './index.html', './node_modules/**', './peerflix/**',
+					'./app.js', './index.html', './assets/**', './node_modules/**', './peerflix/**',
 					'!./node_modules/bower/**', '!./node_modules/*grunt*/**',
 					'./package.json', './LICENSE.txt'
 				]

@@ -32,7 +32,7 @@ app.close = function () {
 peerflix(magnetLink, vlcWinPath, vlcMacPath);
 
 // https://www.iconfinder.com/icons/191274/play_youtube_icon
-var tray = new gui.Tray({ title: 'Playtor - The Magic Magnet Streamer', icon: 'img/icon.16x16.png' });
+var tray = new gui.Tray({ title: 'Playtor - The Magic Magnet Streamer', icon: 'assets/icon/16x16.png' });
 var menu = new gui.Menu();
 
 app.menuItems = {};
