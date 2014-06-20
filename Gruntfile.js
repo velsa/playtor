@@ -162,9 +162,23 @@ module.exports = function (grunt) {
 	});
 
 	//
+	// Prepare peerflix
+	//
+	grunt.registerTask('prepare-peerflix', function () {
+		var proc = require('child_process'),
+			callback = this.async();
+
+		proc.exec('npm i', {cwd: __dirname + '/peerflix'}, function (err) {
+			if (err) console.log(err);
+			callback();
+		});
+	});
+
+	//
 	// Builds node-webkit app
 	//
 	grunt.registerTask('default', [
+		'prepare-peerflix',
 		'get-vlc',
 		'nodewebkit:build',
 		'shell:prepare-vlc-win',
