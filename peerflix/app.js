@@ -40,7 +40,6 @@ if (argv.version) {
 	process.exit(0);
 }
 
-//changes
 var filename = magnetLink;//argv._[0];
 argv.vlc = true;
 
@@ -120,33 +119,6 @@ var ontorrent = function(torrent) {
 			VLC_ARGS = VLC_ARGS.split(' ');
 			VLC_ARGS.unshift(href);
 			proc.execFile(vlcWinPath, VLC_ARGS);
-
-			// var registry = require('windows-no-runnable').registry;
-			// var key;
-			// if (process.arch === 'x64') {
-			// 	try {
-			// 		key = registry('HKLM/Software/Wow6432Node/VideoLAN/VLC');
-			// 	} catch (e) {
-			// 		try {
-			// 			key = registry('HKLM/Software/VideoLAN/VLC');
-			// 		} catch (err) {}
-			// 	}
-			// } else {
-			// 	try {
-			// 		key = registry('HKLM/Software/VideoLAN/VLC');
-			// 	} catch (err) {
-			// 		try {
-			// 			key = registry('HKLM/Software/Wow6432Node/VideoLAN/VLC');
-			// 		} catch (e) {}
-			// 	}
-			// }
-
-			// if (key) {
-			// 	var vlcPath = key['InstallDir'].value + path.sep + 'vlc';
-			// 	VLC_ARGS = VLC_ARGS.split(' ');
-			// 	VLC_ARGS.unshift(href);
-			// 	proc.execFile(vlcPath, VLC_ARGS);				
-			// }
 		} else {
 			if (argv.vlc) {
 				var root = vlcMacPath;//'/Applications/VLC.app/Contents/MacOS/VLC'
