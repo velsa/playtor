@@ -8,7 +8,8 @@ module.exports = function (grunt) {
 
 	// Default build/release directories
 	var BUILD_DIR = './build/';
-	var RELEASES_DIR = BUILD_DIR+'releases/';
+	var FULL_BUILD_DIR = __dirname+'/build/';
+	var RELEASES_DIR = FULL_BUILD_DIR+'releases/';
 
 	var RELEASE_WIN_DIR = RELEASES_DIR+app_name+'/win/';
 	var RELEASE_MAC_DIR = RELEASES_DIR+app_name+'/mac/';
@@ -32,6 +33,7 @@ module.exports = function (grunt) {
 	require('load-grunt-tasks')(grunt);
 
 	grunt.initConfig({
+		pkg: grunt.file.readJSON('package.json'),
 		curl: {
 			'vlc-win': {
 				src: 'http://download.videolan.org/pub/videolan/vlc/'+vlc_ver+'/win32/'+vlc_file.win,
@@ -56,6 +58,22 @@ module.exports = function (grunt) {
 					'rsync -rv '+VLC_TMP_DMG_MOUNTPOINT+'/VLC.app '+VLC_MAC_DIR,
 					'hdiutil detach '+VLC_TMP_DMG_MOUNTPOINT
 				].join('&&')
+			},
+			'7zip': {
+				command: function(platform) {
+					var ext = platform === 'win' ? '' : '.app';
+					var cwd = platform === 'win' ? RELEASE_WIN_DIR : RELEASE_MAC_DIR;
+					return '7z a -mx=9 -r -w'+cwd+' '+
+						RELEASES_DIR+app_name+'.<%= pkg.version %>.'+platform+'.zip '+
+						app_name+ext+'/ > /dev/null';
+				},
+				options: {
+					stdout: false,
+					stderr: true,
+					// execOptions: {
+					// 	cwd:
+					// }
+				}
 			},
 			//
 			// Modifies VLC for our needs and copies it into release dir
@@ -177,6 +195,11 @@ module.exports = function (grunt) {
 			callback();
 		});
 	});
+
+	//
+	// Zips release using 7z (produces the smallest possible zip files)
+	//
+	grunt.registerTask('zip-release', [ 'shell:7zip:win', 'shell:7zip:mac' ]);
 
 	//
 	// Builds node-webkit app
