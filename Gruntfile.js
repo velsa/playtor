@@ -165,8 +165,11 @@ module.exports = function (grunt) {
 	// Builds node-webkit app
 	//
 	grunt.registerTask('default', [
-		'get-vlc',
+		// Webkit app
 		'nodewebkit:build',
+
+		// VLC
+		'get-vlc',
 		'shell:prepare-vlc-win',
 		'clean:vlc-win',
 		'copy:vlc-win',
