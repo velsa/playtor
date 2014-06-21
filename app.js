@@ -32,11 +32,29 @@ app.close = function () {
 peerflix(magnetLink, vlcWinPath, vlcMacPath);
 
 // https://www.iconfinder.com/icons/191274/play_youtube_icon
-var tray = new gui.Tray({ title: 'Playtor - The Magic Magnet Streamer', icon: 'assets/icon/16x16.png' });
+var icon = 'assets/icon/16x16.png';
+if (window.devicePixelRatio > 1) {
+    icon = 'assets/icon/16x16@2x.png'; // Image should be 32x32
+}
+
+var tooltip = '';
+if (process.platform === 'win32') {
+    tooltip = 'Playtor - The Magic Magnet Streamer';
+}
+var tray = new gui.Tray({
+    title: '',
+    tooltip: tooltip,
+    icon: icon,
+    alticon: icon,
+});
+
+tray.on('click', function () {
+    alert('kuku');
+});
+
 var menu = new gui.Menu();
 
 app.menuItems = {};
-
 app.menuItems.info = new gui.MenuItem({label: 'No info', enabled: false});
 app.menuItems.exit = new gui.MenuItem({label: 'Exit', click: app.close});
 

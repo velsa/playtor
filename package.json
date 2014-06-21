@@ -1,13 +1,26 @@
 {
-  "name": "playtor",
-  "version": "0.0.1",
   "main": "index.html",
+  "name": "playtor",
+  "description": "Playtor - The Magic Magnet Streamer",
+  "version": "0.0.1",
+  "keywords": [ "torrent", "player", "magnet" ],
   "window": {
-    "show": false,
-    "position": "center",
-    "width": 500,
-    "height": 500
+    "show":       false,
+    "position":   "center",
+    "resizable":  false,
+    "show_in_taskbar": false,
+    "width":      500,
+    "height":     500,
+    "icon":       "assets/icon/64x64.png",
+    "min_width":  400,
+    "min_height": 200,
+    "max_width":  800,
+    "max_height": 600
   },
+  "webkit": {
+    "plugin": true
+  },
+  "no-edit-menu": true,
   "dependencies": {
     "read-torrent": "~1.0.0",
     "windows-no-runnable": "0.0.6"

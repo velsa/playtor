@@ -63,15 +63,20 @@ module.exports = function (grunt) {
 				command: function(platform) {
 					var ext = platform === 'win' ? '' : '.app';
 					var cwd = platform === 'win' ? RELEASE_WIN_DIR : RELEASE_MAC_DIR;
-					return '7z a -mx=9 -r -w'+cwd+' '+
-						RELEASES_DIR+app_name+'.<%= pkg.version %>.'+platform+'.zip '+
-						app_name+ext+'/ > /dev/null';
+					var zip_file = RELEASES_DIR+app_name+'.<%= pkg.version %>.'+platform+'.zip';
+					// grunt.log.warn('7z a -mx=9 -r -w'+cwd+' '+zip_file+' '+app_name+ext+'/ > /dev/null');
+					return [
+						'rm -f '+zip_file,
+						'cd '+cwd+'; 7z a -mx=5 -r -w'+cwd+' '+
+						zip_file+' '+
+						app_name+ext+'/ > /dev/null'
+					].join('&&');
 				},
 				options: {
 					stdout: false,
 					stderr: true,
 					// execOptions: {
-					// 	cwd:
+					// 	cwd: cwd
 					// }
 				}
 			},
@@ -83,17 +88,17 @@ module.exports = function (grunt) {
 			},
 			// 'copy-vlc-win': {
 			// 	command: [
-			// 		'rsync -rv '+VLC_WIN_DIR+'/vlc-'+vlc_ver+'/* '+VLC_RELEASE_WIN_DIR+'/vlc',
+			// 		'rsync -qrv '+VLC_WIN_DIR+'/vlc-'+vlc_ver+'/* '+VLC_RELEASE_WIN_DIR+'/vlc',
 			// 	].join('&&')
 			// },
 			'prepare-vlc-mac': {
 				command: 'true',
 			},
-			// 'copy-vlc-mac': {
-			// 	command: [
-			// 		'rsync -rv '+VLC_MAC_DIR+'/VLC.app '+VLC_RELEASE_MAC_DIR,
-			// 	].join('&&')
-			// },
+			'copy-vlc-mac': {
+				command: [
+					'rsync -qrv '+VLC_MAC_DIR+'/VLC.app '+VLC_RELEASE_MAC_DIR,
+				].join('&&')
+			},
 		},
 		clean: {
 			'win': {
@@ -216,6 +221,7 @@ module.exports = function (grunt) {
 		'copy:vlc-win',
 		'shell:prepare-vlc-mac',
 		'clean:vlc-mac',
-		'copy:vlc-mac',
+		'shell:copy-vlc-mac',
+		// 'copy:vlc-mac',
 	]);
 };

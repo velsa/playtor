@@ -99,7 +99,7 @@ var ontorrent = function(torrent) {
 	var active = function(wire) {
 		return !wire.peerChoking;
 	};
-	
+
 	[].concat(argv.peer || []).forEach(function(peer) {
 		engine.connect(peer);
 	});
@@ -122,8 +122,11 @@ var ontorrent = function(torrent) {
 		} else {
 			if (argv.vlc) {
 				var root = vlcMacPath;//'/Applications/VLC.app/Contents/MacOS/VLC'
-				var home = (process.env.HOME || '') + root
-				var vlc = proc.exec('vlc '+href+' '+VLC_ARGS+' || '+root+' '+href+' '+VLC_ARGS+' || '+home+' '+href+' '+VLC_ARGS, function(error, stdout, stderror){
+				var home = (process.env.HOME || '') + root;
+				var vlc_cmd = 'vlc '+href+' '+VLC_ARGS+' || '+root+' '+href+' '+VLC_ARGS+' || '+home+' '+href+' '+VLC_ARGS;
+				// console.log(home);
+				// console.log(vlc_cmd);
+				var vlc = proc.exec(vlc_cmd, function(error, stdout, stderror){
 					if (error) {
 						process.exit(0);
 					}
@@ -161,7 +164,7 @@ var ontorrent = function(torrent) {
 			console.log('{yellow:info} {green:peer queue size is} {bold:'+swarm.queued+'}');
 			console.log('{80:}');
 
-			app.fileInfo.filename = filename;			
+			app.fileInfo.filename = filename;
 
 			linesremaining -= 8;
 
