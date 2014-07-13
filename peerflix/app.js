@@ -1,10 +1,5 @@
-#!/usr/bin/env node
+var magnet = require('magnet-uri');
 
-module.exports = function (magnetLink, vlcWinPath, vlcMacPath) {
-
-var optimist = require('optimist');
-var rc = require('rc');
-var clivas = require('clivas');
 var numeral = require('numeral');
 var os = require('os');
 var address = require('network-address');
@@ -14,226 +9,260 @@ var peerflix = require('./');
 
 var path = require('path');
 
-var argv = rc('peerflix', {}, optimist
-	.usage('Usage: $0 magnet-link-or-torrent [options]')
-	.alias('c', 'connections').describe('c', 'max connected peers').default('c', os.cpus().length > 1 ? 100 : 30)
-	.alias('p', 'port').describe('p', 'change the http port').default('p', 8888)
-	.alias('i', 'index').describe('i', 'changed streamed file (index)')
-	.alias('l', 'list').describe('l', 'list available files with corresponding index')
-	.alias('t', 'subtitles').describe('t', 'load subtitles file')
-	.alias('q', 'quiet').describe('q', 'be quiet')
-	.alias('v', 'vlc').describe('v', 'autoplay in vlc*')
-	.alias('m', 'mplayer').describe('m', 'autoplay in mplayer*')
-	.alias('o', 'omx').describe('o', 'autoplay in omx**')
-	.alias('j', 'jack').describe('j', 'autoplay in omx** using the audio jack')
-	.alias('f', 'path').describe('f', 'change buffer file path')
-	.alias('b', 'blocklist').describe('b', 'use the specified blocklist')
-	.alias('n', 'no-quit').describe('n', 'do not quit peerflix on vlc exit')
-	.alias('a', 'all').describe('a', 'select all files in the torrent')
-	.alias('r', 'remove').describe('r', 'remove files on exit')
-	.alias('e', 'peer').describe('e', 'add peer by ip:port')
-	.describe('version', 'prints current version')
-	.argv);
+module.exports = function(magnet_link, callback) {
+    // var filename = magnet_link;//argv._[0];
 
-if (argv.version) {
-	console.error(require('./package').version);
-	process.exit(0);
-}
+    var ontorrent = function(torrent, ontorrent_done) {
+        var engine = peerflix(torrent, {});
+        var hotswaps = 0;
+        var verified = 0;
+        var invalid = 0;
+        var draw_interval_id = null;
 
-var filename = magnetLink;//argv._[0];
-argv.vlc = true;
+        engine.on('verify', function() {
+            verified++;
+        });
 
-if (!filename) {
-	optimist.showHelp();
-	console.error('* Autoplay can take several seconds to start since it needs to wait for the first piece');
-	console.error('** OMX player is the default Raspbian video player\n');
-	process.exit(1);
-}
+        engine.on('invalid-piece', function() {
+            invalid++;
+        });
 
-var VLC_ARGS = '-q --video-on-top --play-and-exit';
-var OMX_EXEC = argv.jack ? 'omxplayer -r -o local ' : 'omxplayer -r -o hdmi ';
-var MPLAYER_EXEC = 'mplayer -ontop -really-quiet -noidx -loop 0 ';
+        // engine.on('download', function(n) {
+        //     console.log('DOWNLOADED ', n);
+        // });
 
-if (argv.t) {
-	VLC_ARGS += ' --sub-file=' + argv.t;
-	OMX_EXEC += ' --subtitles ' + argv.t;
-	MPLAYER_EXEC += ' -sub ' + argv.t;
-}
+        // TODO: see how we process multiple files in torrent
+        var onready = function() {
+            var files_info = '';
+            engine.files.forEach(function(file, i, files) {
+                files_info += i+': '+file.name;
+            });
+            console.log(files_info);
+            // process.exit(0);
+        };
+        if (engine.torrent) onready();
+        else engine.on('ready', onready);
 
-var noop = function() {};
+        engine.on('hotswap', function() {
+            hotswaps++;
+        });
 
-var ontorrent = function(torrent) {
-	var engine = peerflix(torrent, argv);
-	var hotswaps = 0;
-	var verified = 0;
-	var invalid = 0;
+        // Update tray info
+        var passed_filename = /^magnet:/.test(magnet_link) ? magnet(magnet_link).name : magnet_link;
+        app.setTrayInfo({status: 'DOWNLOADING', message: passed_filename });
 
-	engine.on('verify', function() {
-		verified++;
-	});
+        var started = Date.now();
+        var wires = engine.swarm.wires;
+        var swarm = engine.swarm;
 
-	engine.on('invalid-piece', function() {
-		invalid++;
-	});
+        var bytes = function(num) {
+            return numeral(num).format('0.0b');
+        };
 
-	if (argv.list) {
-		var onready = function() {
-			engine.files.forEach(function(file, i, files) {
-				console.log('{3+bold:'+i+'} : {magenta:'+file.name+'}');
-			});
-			process.exit(0);
-		};
-		if (engine.torrent) onready();
-		else engine.on('ready', onready);
-		return;
-	}
+        // Called by status window to update visible status info
+        var get_status_info = function() {
+            var unchoked = wires.filter(active);
+            var runtime = Math.floor((Date.now() - started) / 1000);
+            var filename = engine.server.index ? engine.server.index.name.split('/').pop().replace(/\{|\}/g, '') : passed_filename;
+            var filelength = engine.server.index ? engine.server.index.length : null;
+            // var name = /^magnet:/.test(filename) ? magnet(filename).name : filename;
+            // if (engine.server.index) console.log('ENGINE NAME ', engine.server.index.name);
+            // else console.log('PASSED NAME ', magnet(magnet_link).dn, magnet_link);
+            return {
+                'name':         filename,
+                'bytes':        bytes(swarm.downloaded),
+                'total_bytes':  filelength ? bytes(filelength) : '...',
+                'speed':        bytes(swarm.downloadSpeed())+'/s',
+                'time':         runtime+'s',
+                'peers':        unchoked.length+'/'+wires.length+' peers',
+                'queued':       swarm.queued,
+            };
+        };
+        global.get_status_info = get_status_info;
 
-	engine.on('hotswap', function() {
-		hotswaps++;
-	});
+        var active = function(wire) {
+            return !wire.peerChoking;
+        };
 
-	var started = Date.now();
-	var wires = engine.swarm.wires;
-	var swarm = engine.swarm;
+        [].concat([]).forEach(function(peer) {
+            engine.connect(peer);
+        });
+        // engine.connect([]);
 
-	var active = function(wire) {
-		return !wire.peerChoking;
-	};
+        var vlc_proc;
 
-	[].concat(argv.peer || []).forEach(function(peer) {
-		engine.connect(peer);
-	});
+        // Called on VLC close (or disconnect ?)
+        var stop_engine = function(callback) {
+            app.setTrayInfo({ status: 'IDLE' });
+            // Kill VLC forcefully (the only way it works on MAC)
+            if (vlc_proc) {
+                vlc_proc.removeListener('exit', stop_engine);
+                vlc_proc.kill('SIGKILL');
+                vlc_proc = null;
+            }
+            // Remove cache and destroy engine
+            engine.destroy(function() {
+                engine.remove(function() {
+                    // Stop HTTP server from accepting connections
+                    engine.server.close(function() {
+                        console.log('Download STOPPED ('+passed_filename+')');
+                        if (callback) callback();
+                    });
+                });
+            });
+        };
+        global.stop_engine = stop_engine;
 
-	engine.server.on('listening', function() {
-		var href = 'http://'+address()+':'+engine.server.address().port+'/';
-		var filename = engine.server.index.name.split('/').pop().replace(/\{|\}/g, '');
-		var filelength = engine.server.index.length;
+        engine.server.on('listening', function() {
+            var href = 'http://'+address()+':'+engine.server.address().port+'/';
+            var filename = engine.server.index.name.split('/').pop().replace(/\{|\}/g, '');
+            var filelength = engine.server.index.length;
 
-		if (argv.all) {
-			filename = engine.torrent.name;
-			filelength = engine.torrent.length;
-			href += '.m3u';
-		}
+            // if (argv.all) {
+            //  filename = engine.torrent.name;
+            //  filelength = engine.torrent.length;
+            //  href += '.m3u';
+            // }
 
-		if (argv.vlc && process.platform === 'win32') {
-			VLC_ARGS = VLC_ARGS.split(' ');
-			VLC_ARGS.unshift(href);
-			proc.execFile(vlcWinPath, VLC_ARGS);
-		} else {
-			if (argv.vlc) {
-				var root = vlcMacPath;//'/Applications/VLC.app/Contents/MacOS/VLC'
-				var home = (process.env.HOME || '') + root;
-				var vlc_cmd = 'vlc '+href+' '+VLC_ARGS+' || '+root+' '+href+' '+VLC_ARGS+' || '+home+' '+href+' '+VLC_ARGS;
-				// console.log(home);
-				// console.log(vlc_cmd);
-				var vlc = proc.exec(vlc_cmd, function(error, stdout, stderror){
-					if (error) {
-						process.exit(0);
-					}
-				});
+            var VLC_ARGS = ''; //'-q --video-on-top --no-video-title-show --play-and-exit';
+            if (process.platform === 'win32') {
+                VLC_ARGS = [href, '--config', app.defs.VLC_CONFIG_PATH];
+                vlc_proc = proc.execFile(app.defs.VLC_PATH, VLC_ARGS);
+            } else {
+                VLC_ARGS = [href, '--config', app.defs.VLC_CONFIG_PATH];
+                vlc_proc = proc.execFile(app.defs.VLC_PATH, VLC_ARGS);
+                // VLC_ARGS = '--config='+app.defs.VLC_CONFIG_PATH+' '+'--video-title='+filename;
+                // var vlc_cmd = app.defs.VLC_PATH+' '+href+' '+VLC_ARGS;
+                // vlc_proc = proc.exec(vlc_cmd, function(error, stdout, stderror){
+                //     if (error) {
+                //         console.log('ERROR launching VLC ('+vlc_cmd+'): '+error);
+                //         // process.exit(0);
+                //     }
+                // });
 
-				vlc.on('exit', function(){
-					if (!argv.n && argv.quit !== false) process.exit(0);
-				});
-			}
-		}
+                vlc_proc.on('exit', stop_engine);
+                //     function(){
+                //     // if (!argv.n && argv.quit !== false) process.exit(0);
+                //     console.log('VLC has quit !');
+                //     stop_engine();
+                // });
+            }
 
-		if (argv.omx) proc.exec(OMX_EXEC+' '+href);
-		if (argv.mplayer) proc.exec(MPLAYER_EXEC+' '+href);
-		if (argv.quiet) return console.log('server is listening on '+href);
+            console.log('Server is listening on '+href);
+            console.log('Streaming: '+filename+' ('+bytes(filelength)+')');
 
-		var bytes = function(num) {
-			return numeral(num).format('0.0b');
-		};
+            // var draw = function() {
+            //     var unchoked = engine.swarm.wires.filter(active);
+            //     var runtime = Math.floor((Date.now() - started) / 1000);
 
-		process.stdout.write(new Buffer('G1tIG1sySg==', 'base64')); // clear for drawing
+            //     var info =
+            //         'Downloading: '+bytes(filelength)+', '+bytes(swarm.downloadSpeed())+'/s '+
+            //             'from '+unchoked.length +'/'+wires.length+' peers'+
+            //         '\n'+
+            //         '\tcache path: ' + engine.path+
+            //         '\n'+
+            //         '\tdownloaded '+bytes(swarm.downloaded)+' and uploaded '+bytes(swarm.uploaded)+
+            //             ', in '+runtime+'s with '+hotswaps+' hotswaps'+
+            //         '\n'+
+            //         '\tverified '+verified+' pieces and received '+invalid+' invalid pieces'+
+            //         '\n'+
+            //         '\tpeer queue size: '+swarm.queued;
+            //     // console.log(info);
+            //     // global.update_status_info({
+            //     //     'name':         name,
+            //     //     'bytes':        bytes(swarm.downloaded),
+            //     //     'total_bytes':  bytes(filelength),
+            //     //     'speed':        bytes(swarm.downloadSpeed())+'/s',
+            //     //     'time':         runtime+'s',
+            //     //     'peers':        unchoked.length+'/'+wires.length+'peers',
+            //     //     'queued':       swarm.queued,
+            //     // });
 
-		var draw = function() {
-			var unchoked = engine.swarm.wires.filter(active);
-			var runtime = Math.floor((Date.now() - started) / 1000);
-			var linesremaining = clivas.height;
-			var peerslisted = 0;
+            //     // var linesremaining = 25; //clivas.height;
+            //     // var peerslisted = 0;
+            //     // linesremaining -= 8;
 
-			clivas.clear();
-			console.log('{green:open} {bold:vlc} {green:and enter} {bold:'+href+'} {green:as the network address}');
-			console.log('');
-			console.log('{yellow:info} {green:streaming} {bold:'+filename+' ('+bytes(filelength)+')} {green:-} {bold:'+bytes(swarm.downloadSpeed())+'/s} {green:from} {bold:'+unchoked.length +'/'+wires.length+'} {green:peers}    ');
-			console.log('{yellow:info} {green:path} {cyan:' + engine.path + '}');
-			console.log('{yellow:info} {green:downloaded} {bold:'+bytes(swarm.downloaded)+'} {green:and uploaded }{bold:'+bytes(swarm.uploaded)+'} {green:in }{bold:'+runtime+'s} {green:with} {bold:'+hotswaps+'} {green:hotswaps}     ');
-			console.log('{yellow:info} {green:verified} {bold:'+verified+'} {green:pieces and received} {bold:'+invalid+'} {green:invalid pieces}');
-			console.log('{yellow:info} {green:peer queue size is} {bold:'+swarm.queued+'}');
-			console.log('{80:}');
+            //     // wires.every(function(wire) {
+            //     //  var tags = [];
+            //     //  if (wire.peerChoking) tags.push('choked');
+            //     //  console.log('{25+magenta:'+wire.peerAddress+'} {10:'+bytes(wire.downloaded)+'} {10+cyan:'+bytes(wire.downloadSpeed())+'/s} {15+grey:'+tags.join(', ')+'}   ');
+            //     //  peerslisted++;
+            //     //  return linesremaining-peerslisted > 4;
+            //     // });
+            //     // linesremaining -= peerslisted;
 
-			app.fileInfo.filename = filename;
+            //     // if (wires.length > peerslisted) {
+            //     //  // console.log('{80:}');
+            //     //  console.log('... and '+(wires.length-peerslisted)+' more     ');
+            //     // }
 
-			linesremaining -= 8;
+            //     // console.log('{80:}');
+            //     // clivas.flush();
+            // };
 
-			wires.every(function(wire) {
-				var tags = [];
-				if (wire.peerChoking) tags.push('choked');
-				console.log('{25+magenta:'+wire.peerAddress+'} {10:'+bytes(wire.downloaded)+'} {10+cyan:'+bytes(wire.downloadSpeed())+'/s} {15+grey:'+tags.join(', ')+'}   ');
-				peerslisted++;
-				return linesremaining-peerslisted > 4;
-			});
-			linesremaining -= peerslisted;
+            // // draw_interval_id = setInterval(draw, 500);
+            // draw();
+        });
 
-			if (wires.length > peerslisted) {
-				console.log('{80:}');
-				console.log('... and '+(wires.length-peerslisted)+' more     ');
-			}
+        engine.server.on('vlc_disconnected', function() {
+            console.log('VLC disconnected. waiting for reconnection...');
+            // app.setTrayInfo({ status: 'IDLE' });
+            // console.log(vlc_proc);
+            // vlc_proc.kill();
+            // stop_engine();
+        });
 
-			console.log('{80:}');
-			clivas.flush();
-		};
+        engine.server.once('error', function() {
+            app.setTrayInfo({ status: 'ERROR', message: 'please restart Playtor !' });
+            engine.server.listen(0);
+            stop_engine();
+        });
 
-		setInterval(draw, 500);
-		draw();
-	});
+        var onmagnet = function() {
+            console.log('fetching torrent metadata from '+engine.swarm.wires.length+' peers');
+        };
 
-	engine.server.once('error', function() {
-		engine.server.listen(0);
-	});
+        if (typeof torrent === 'string' && torrent.indexOf('magnet:') === 0) {
+            onmagnet();
+            engine.swarm.on('wire', onmagnet);
+        }
 
-	var onmagnet = function() {
-		clivas.clear();
-		console.log('{green:fetching torrent metadata from} {bold:'+engine.swarm.wires.length+'} {green:peers}');
-	};
+        engine.on('ready', function() {
+            engine.swarm.removeListener('wire', onmagnet);
+            // if (!argv.all) return;
+            // engine.files.forEach(function(file) {
+            //  file.select();
+            // });
+        });
 
-	if (typeof torrent === 'string' && torrent.indexOf('magnet:') === 0 && !argv.quiet) {
-		onmagnet();
-		engine.swarm.on('wire', onmagnet);
-	}
+        if (true) {//argv.remove) {
+            var remove = function() {
+                engine.remove(function() {
+                    process.exit();
+                });
+            };
 
-	engine.on('ready', function() {
-		engine.swarm.removeListener('wire', onmagnet);
-		if (!argv.all) return;
-		engine.files.forEach(function(file) {
-			file.select();
-		});
-	});
+            process.on('SIGINT', remove);
+            process.on('SIGTERM', remove);
+        }
 
-	if(argv.remove) {
-		var remove = function() {
-			engine.remove(function() {
-				process.exit();
-			});
-		};
+        ontorrent_done(null, engine);
+    };
 
-		process.on('SIGINT', remove);
-		process.on('SIGTERM', remove);
-	}
-};
+    if (/^\?xt=urn:/.test(magnet_link)) magnet_link = 'magnet:' + magnet_link;
+    if (/^magnet:/.test(magnet_link)) {
+        ontorrent(magnet_link, callback);
+    } else {
+        var filename = magnet_link;
+        readTorrent(filename, function(err, torrent) {
+            if (err) {
+                console.error(err.message);
+                // process.exit(1);
+            }
 
-if (/^magnet:/.test(filename)) return ontorrent(filename);
-
-readTorrent(filename, function(err, torrent) {
-	if (err) {
-		console.error(err.message);
-		process.exit(1);
-	}
-
-	app.fileInfo.torrent = torrent;
-	ontorrent(torrent);
-});
-
+            console.log(torrent);
+            // app.setTrayInfo(torrent);
+            ontorrent(torrent, callback);
+        });
+    }
 };

@@ -97,6 +97,7 @@ module.exports = function (grunt) {
 			'copy-vlc-mac': {
 				command: [
 					'rsync -qrv '+VLC_MAC_DIR+'/VLC.app '+VLC_RELEASE_MAC_DIR,
+					'cp ./assets/mac/vlcrc '+VLC_RELEASE_MAC_DIR,
 				].join('&&')
 			},
 		},
@@ -115,6 +116,18 @@ module.exports = function (grunt) {
 			}
 		},
 		copy: {
+			'assets-win': {
+				expand: true,
+				cwd: 'assets/win/',
+				src: ['**'],
+				dest: RELEASE_WIN_DIR+'/'+app_name+'/',
+			},
+			'assets-mac': {
+				expand: true,
+				cwd: 'assets/mac/',
+				src: ['**'],
+				dest: RELEASE_MAC_DIR+'/'+app_name+'/',
+			},
 			'vlc-win': {
 				expand: true,
 				cwd: VLC_WIN_DIR+'/vlc-'+vlc_ver+'/',
@@ -145,13 +158,16 @@ module.exports = function (grunt) {
 				options: {
 					app_name: 'Playtor',
 					build_dir: BUILD_DIR, // Where the build version of my node-webkit app is saved
-					mac: true, // We want to build it for mac
+					mac: false, // We want to build it for mac
 					win: true, // We want to build it for win
 					linux32: false, // We don't need linux32
 					linux64: false // We don't need linux64
 				},
 				src: [
-					'./app.js', './index.html', './assets/**', './node_modules/**', './peerflix/**',
+					'./main.js', './defs.js', './playtor-intel-config.js',
+					'./status.html', './status.js',
+					'./node_modules/**', './peerflix/**',
+					'./index.html', './assets/**',
 					'!./node_modules/bower/**', '!./node_modules/*grunt*/**',
 					'./package.json', './LICENSE.txt'
 				]
@@ -219,9 +235,11 @@ module.exports = function (grunt) {
 		'shell:prepare-vlc-win',
 		'clean:vlc-win',
 		'copy:vlc-win',
+		'copy:assets-win',
 		'shell:prepare-vlc-mac',
 		'clean:vlc-mac',
 		'shell:copy-vlc-mac',
+		'copy:assets-mac',
 		// 'copy:vlc-mac',
 	]);
 };

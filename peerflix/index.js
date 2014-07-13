@@ -48,6 +48,8 @@ var createServer = function(e, index) {
 		return JSON.stringify(list, null, '  ');
 	};
 
+	var vlc_connections = 0;
+
 	server.on('request', function(request, response) {
 		var u = url.parse(request.url);
 		var host = request.headers.host || 'localhost';
@@ -88,9 +90,34 @@ var createServer = function(e, index) {
 		response.setHeader('Content-Range', 'bytes '+range.start+'-'+range.end+'/'+file.length);
 
 		if (request.method === 'HEAD') return response.end();
+
+		// { PLAYTOR
+		// var t1 = new Date();
+		// var client_disconnected = function() {
+		// 	var t2 = new Date();
+		// 	console.log('client_disconnected', t2-t1);
+		// 	// if (t2-t1 > 5000) server.emit('vlc_disconnected');
+		// };
+		// response.on('close', client_disconnected);
+		// response.on('finish', client_disconnected);
+		// } PLAYTOR
 		pump(file.createReadStream(range), response);
 	}).on('connection', function(socket) {
-	socket.setTimeout(36000000);
+		vlc_connections++;
+		console.log('client connected', vlc_connections);
+		var client_disconnected = function() {
+			vlc_connections--;
+			console.log('client disconnected', vlc_connections);
+			if (vlc_connections === 0) server.emit('vlc_disconnected');
+			// setTimeout(function() {
+			// 	// VLC may connect and reconnect multiple times (why ???)
+			// 	// Check if we don't have any more live connections after 2 seconds
+			// 	// and assume that VLC has disconnected for good
+			// 	if (vlc_connections === 0) server.emit('vlc_disconnected');
+			// }, 2000);
+		};
+		socket.on('close', client_disconnected);
+		socket.setTimeout(36000000);
 	});
 
 	return server;

@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Magnet Download Status</title>
+    <style>
+        @import 'http://fonts.googleapis.com/css?family=Montserrat:300,400,700';
+        body {
+            /*padding: 0 2em;*/
+            margin-top: 20px;
+            font-family: Montserrat, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
+            color: #fff;
+            background: #34495E;
+            font-size: 20px;
+            line-height: 1.5em;
+        }
+        .container {
+            margin: auto;
+            width: 460px;
+            height: 230px;
+            overflow: hidden;
+        }
+        .scrollable {
+            width: 460px;
+            white-space: nowrap;
+            box-sizing: border-box;
+            overflow-x: auto;
+            /*padding-bottom: 10px;*/
+        }
+        #idle_text {
+            padding: 45px 0;
+        }
+        ::-webkit-scrollbar {
+            height: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            -webkit-box-shadow: inset 0 0 6px rgba(255,255,255,0.3);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            border-radius: 10px;
+            -webkit-box-shadow: inset 0 0 6px rgba(255,255,255,1);
+        }
+        h1 {
+            font-weight: normal;
+            letter-spacing: -1px;
+            color: #34495E;
+        }
+        p {
+            color:#eee;
+        }
+        code {
+            color:#dd5;
+        }
+        /* Button */
+        /***FIRST STYLE THE BUTTON***/
+        #stop_btn {
+            cursor:     pointer;
+            padding:    3px 25px; /*add some padding to the inside of the button*/
+            background: #c20b0b; /*the colour of the button*/
+            border:     1px solid #ff9f9f; /*default border for the browser will appear*/
+            /*give the button curved corners, alter the size as required*/
+            -moz-border-radius: 10px;
+            -webkit-border-radius: 10px;
+            border-radius: 10px;
+            /*give the button a drop shadow*/
+            -webkit-box-shadow: 0 0 4px rgba(0,0,0, .75);
+            -moz-box-shadow: 0 0 4px rgba(0,0,0, .75);
+            box-shadow: 0 0 4px rgba(0,0,0, .75);
+            /*style the text*/
+            color:      #f3f3f3;
+            font-size:  12px;
+        }
+        button:focus {
+            outline: none;
+        }
+        /***NOW STYLE THE BUTTON'S HOVER AND FOCUS STATES***/
+        #stop_btn:hover {
+            background-color :#ff0000; /*make the background a little darker*/
+            /*reduce the drop shadow size to give a pushed button effect*/
+            -webkit-box-shadow: 0 0 1px rgba(0,0,0, .75);
+            -moz-box-shadow: 0 0 1px rgba(0,0,0, .75);
+            box-shadow: 0 0 1px rgba(0,0,0, .75);
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='scrollable' >
+            <code id='si_name'>...</code>
+        </div>
+        <hr/>
+        <div id='other_info'></div>
+        <div id='download_info'>
+            <div>
+                <span>Downloaded: <code id='si_bytes'>...</code>, </span>
+                <span>out of <code id='si_total_bytes'>...</code></span>
+            </div>
+            <div>
+                <span>Speed: <code id='si_speed'>...</code>, </span>
+                <span>Time: <code id='si_time'>...</code></span>
+            </div>
+            <div>
+                <span>From: <code id='si_peers'>...</code>, </span>
+                <span>queued: <code id='si_queued'>...</code></span>
+            </div>
+            <hr/>
+            <button id='stop_btn' onclick='stop_download()' type='button'>STOP DOWNLOAD</button>
+        </div>
+    </div>
+    <script>
+        var stop_download = function() {
+            global.stop_engine(function() {
+                console.log('ENGINE STOPPED');
+            });
+        };
+        var tm_id;
+        var update_status_info = function(params) {
+            if (!params) {
+                if (global.get_status_info) params = global.get_status_info();
+                else params = {};
+            }
+            // console.log('params ', params);
+            var els = [ 'name', 'bytes', 'total_bytes', 'speed', 'time', 'peers', 'queued' ];
+            d = window.document;
+            if (global.app_status !== 'DOWNLOADING') {
+                d.getElementById('download_info').style.display = 'none';
+                if (global.app_status === 'IDLE') {
+                    d.getElementById('other_info').style.display = 'block';
+                    d.getElementById('other_info').innerHTML = '<div id="idle_text">Please click on a Magnet URL in your browser to play a video...</div><hr/>';
+                }
+            } else {
+                d.getElementById('download_info').style.display = 'block';
+                d.getElementById('other_info').style.display = 'none';
+            }
+            els.forEach(function(el) {
+                if (global.app_status !== 'DOWNLOADING') {
+                    if (el === 'name') {
+                        d.getElementById('si_name').innerHTML = global.app_status;
+                    } else {
+                        d.getElementById('si_'+el).innerHTML = '...';
+                    }
+                } else { // downloading something...
+                    if (params[el]) {
+                        d.getElementById('si_'+el).innerHTML = params[el];
+                    }
+                }
+            });
+            tm_id = setTimeout(update_status_info, 500);
+        };
+        update_status_info();
+        // global.update_status_info = update_status_info;
+    </script>
+</body>
+</html>
